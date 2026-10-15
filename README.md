@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flowdesk — Treatment Proposal Register
 
-## Getting Started
+Next.js 16 App Router application migrated from the original HTML register, preserving all 152 historical proposal rows.
 
-First, run the development server:
+## Local development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Use Node.js 22.18 or newer. Run `npm install`, then `npm run dev` and open http://localhost:3000.
+
+Login uses Supabase Auth and approved usernames in `register_members`. There are no hardcoded credentials or development fallback accounts. Configure `.env`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+SUPABASE_SECRET_KEY=your-server-only-secret-key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run **supabase/install.sql** in your Supabase SQL Editor to install everything at once. Alternatively, run these files **in order**:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. `supabase/setup.sql` — tables, settings, membership policies.
+2. `supabase/cloud-storage.sql` — database form options and transactional save/import functions.
+3. `supabase/seed.sql` — inserts all 152 historical proposal rows and advances the sequence.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Follow [supabase/README.md](supabase/README.md) to create an account with `npm run seed:user`. The account script generates a password if none is provided; passwords are stored by Supabase Auth. The server secret enables username lookup; email login works without it. Never expose the server secret to client code or commit `.env` files.
 
-## Learn More
+Supabase validates passwords, manages session cookies and applies its Auth rate limits. `proxy.ts` refreshes sessions; protected pages verify the user and database membership. The former custom `flowdesk_session` cookie is ignored. Public registration and password recovery screens are not included. Set environment variables on your hosting service, then run `npm run build` and `npm start` behind HTTPS.
 
-To learn more about Next.js, take a look at the following resources:
+## File structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+app/
+  layout.tsx              Root metadata, styles, Suspense boundary
+  login/                  Login screen and authentication Server Actions
+  (workspace)/
+    layout.tsx            Authenticated shell with initial database records
+    actions.ts            Authorized database reads and writes
+    page.tsx              Dashboard
+    register/page.tsx     Search, filters, pagination, history, exports
+    new/page.tsx          New proposal and revision entry
+    settings/page.tsx     Shared numbering and JSON backup/import
+components/               Forms, table, workspace shell and icons
+lib/auth.ts               Supabase user and workspace membership checks
+lib/supabase/             Server-only session and admin clients
+proxy.ts                  Supabase session refresh
+supabase/                 SQL schema, historical imports and setup instructions
+scripts/seed-user.mjs     Create an Auth account and database membership
+lib/proposals.ts          Types, validation, numbering and export helpers
+lib/register-data.ts      Database reads with pagination
+supabase/seed.sql         Historical inserts with original source metadata
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Records and migration
 
-## Deploy on Vercel
+The database is the source of truth for proposals, numbering, usernames, treatment types, and locations. The app has no bundled proposal dataset or browser-storage fallback. The first render reads Supabase on the server; the client refreshes after writes, on navigation/focus, and every 30 seconds while visible. An empty database shows an empty register; connection and permission errors are surfaced instead of replaced with demo data.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Original browser storage is left untouched but no longer read by the app. Import an original JSON backup under **Settings & backup** to migrate any additional browser records. Imports add missing records, skip identical rows, and reject conflicts without changing existing history. They never replace or delete database records. Downloaded backups and CSV/Excel exports contain the currently loaded database records.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+New projects and revisions are numbered in database transactions using a shared row lock. The form shows a preview; the database assigns the final number. Revisions retain project code, treatment code, financial year and sequence, incrementing only the final two digits (maximum 99). Stale settings updates are rejected. Dashboard totals use the latest revision per project. Exports include all history and original Excel metadata; Excel uses the original XML Spreadsheet `.xls` format.
+
+## Validation
+
+Run `npm run lint`, `npm run build`, and `npm test`. Auth/data reader tests simulate Supabase responses. Database tests execute the schema, historical imports, access policies and transaction functions against a local PostgreSQL engine (PGlite), without changing your live project.
