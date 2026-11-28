@@ -12,6 +12,31 @@ export interface ProposalInput {
   project: string; effluent: string; flow: number; price: number; gp: number;
   date: string; location: string; requestedBy: string;
 }
+export interface ProposalFilter {
+  query?: string;
+  type?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+export function filterProposals(records: Proposal[], filter: ProposalFilter) {
+  const q = (filter.query || "").trim().toLowerCase();
+  const type = filter.type || "";
+  const fromDate = filter.fromDate || "";
+  const toDate = filter.toDate || "";
+  return records
+    .filter(r => {
+      if (type && r.proposalType !== type) return false;
+      if (fromDate || toDate) {
+        const d = /^\d{4}-\d{2}-\d{2}/.test(r.date) ? r.date.slice(0, 10) : "";
+        if (!d) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+      }
+      if (q && !`${r.number} ${r.project} ${r.effluent} ${r.location} ${r.requestedBy}`.toLowerCase().includes(q)) return false;
+      return true;
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
 export function latestRecords(records: Proposal[]) {
   const map = new Map<string, Proposal>();
   for (const row of records) if (!map.has(row.baseId) || map.get(row.baseId)!.revision < row.revision) map.set(row.baseId, row);

@@ -678,6 +678,59 @@ tbody tr:hover {
   font-size:11px;
   background:transparent
 }
+.date-range-filter {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  border:1px solid #dee2e8;
+  border-radius:7px;
+  padding:0 10px;
+  min-height:39px;
+  background:#fff;
+  transition:border-color .2s,box-shadow .2s
+}
+.date-range-filter:focus-within {
+  border-color:#335584;
+  box-shadow:0 0 0 3px #16396a12
+}
+.date-field {
+  flex-direction:row;
+  align-items:center;
+  gap:5px;
+  font-size:10px;
+  font-weight:600;
+  color:#7d8ea5
+}
+.date-field input[type="date"] {
+  width:auto;
+  min-height:36px;
+  border:0;
+  padding:4px 2px;
+  font-size:10px;
+  color:var(--ink);
+  background:transparent
+}
+.date-field input[type="date"]:focus {
+  box-shadow:none
+}
+.date-range-sep {
+  color:#9aa8bb;
+  font-size:11px
+}
+.date-clear {
+  border:0;
+  background:#eff4fa;
+  color:#55657b;
+  border-radius:5px;
+  padding:4px 7px;
+  font-size:9px;
+  font-weight:600;
+  margin-left:2px
+}
+.date-clear:hover {
+  background:#e2eaf6;
+  color:var(--ink)
+}
 .toolbar-exports {
   display:flex;
   gap:7px;
@@ -1374,6 +1427,17 @@ h1 {
 }
 .register-toolbar>select {
   width:150px;
+  font-size:9px
+}
+.date-range-filter {
+  flex-wrap:wrap;
+  width:100%;
+  padding:4px 9px
+}
+.date-field {
+  font-size:9px
+}
+.date-field input[type="date"] {
   font-size:9px
 }
 .toolbar-exports .button {
